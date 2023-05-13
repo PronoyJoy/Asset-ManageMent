@@ -40,25 +40,44 @@ class LoginSerializer(serializers.Serializer):
 
 
 class CompanySerializer(ModelSerializer):
+    admin = serializers.HiddenField(default=serializers.CurrentUserDefault())
     class Meta:
         model = Company
         fields = '__all__'
 
+    def create(self, validated_data):
+        validated_data['admin'] = self.context['request'].user
+        return super().create(validated_data)
+
 
 class EmployeeSerializer(ModelSerializer):
+    company = serializers.PrimaryKeyRelatedField(queryset=Company.objects.all(), default=serializers.CurrentUserDefault())
     class Meta:
         model = Employee
         fields = '__all__'
+    
+    def create(self, validated_data):
+        validated_data['company'] = self.context['request'].user.company
+        return super().create(validated_data)
 
 
 class DeviceSerializer(ModelSerializer):
+    company = serializers.PrimaryKeyRelatedField(queryset = Company.objects.all(),default = serializers.CurrentUserDefault())
+    
     class Meta:
         model = Device
         fields = '__all__'
+    def create(self, validated_data):
+        validated_data['company'] = self.context['request'].user.company
+        return super().create(validated_data)
 
 
 
 class DeviceLogSerializer(ModelSerializer):
+    employee = serializers.PrimaryKeyRelatedField(queryset = Employee.objects.all())
+    device = serializers.PrimaryKeyRelatedField(queryset = Device.objects.all())
+    assigned = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+    returned  = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
     class Meta:
         model = DeviceLog
-        fields = '__all__' 
+        fields = ('employee','device','assigned','returned','condition')
