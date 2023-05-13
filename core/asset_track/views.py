@@ -13,7 +13,15 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.views import APIView
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
+from rest_framework import permissions
 # Create your views here.
+
+# class IsCompanyAdmin(permissions.BasePermission):
+#     def has_permission(self, request, view):
+#         if request.method in permissions.SAFE_METHODS:
+#             return True
+#         company = request.user.company
+#         return company.admin == request.user
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -65,7 +73,8 @@ class LoginView(APIView):
         return Response( {'status' : True,
                 'message' : 'Logged In', 'token' : str(token) },status.HTTP_200_OK)
 
-        
+
+
 
 class CompanyView(ModelViewSet):
     authentication_classes = [TokenAuthentication]
@@ -75,19 +84,56 @@ class CompanyView(ModelViewSet):
     
 
 class EmployeeView(ModelViewSet):
+    authentication_classes = [TokenAuthentication]
     serializer_class = EmployeeSerializer
-    queryset = Employee.objects.all()
+    permission_classes = [IsAuthenticated]
 
+    def perform_create(self, serializer):
+        serializer.save(company=self.request.user.company)
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated:
+            # Only show employees of the currently logged in user's company
+            return Employee.objects.filter(company=user.company)
+        else:
+            # If user is not authenticated, return empty queryset
+            return Employee.objects.none()
   
 
 class DeviceView(ModelViewSet):
+    authentication_classes = [TokenAuthentication]
+    
     serializer_class = DeviceSerializer
-    queryset = Device.objects.all()
+    permission_classes = [IsAuthenticated]
+    # queryset = Device.objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save(company=self.request.user.company)
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated:
+            # Only show employees of the currently logged in user's company
+            return Device.objects.filter(company=user.company)
+        else:
+            # If user is not authenticated, return empty queryset
+            return Device.objects.none()
 
 class DeviceLogView(ModelViewSet):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     serializer_class = DeviceLogSerializer
     queryset = DeviceLog.objects.all()
-    
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = super().get_queryset()
+        if user.is_authenticated and user.company:
+            queryset = queryset.filter(employee__company=user.company)
+        else:
+            queryset = DeviceLog.objects.none()
+        return queryset
 
 
 
