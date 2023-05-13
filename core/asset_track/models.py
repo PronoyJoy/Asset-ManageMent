@@ -1,9 +1,11 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 # Create your models here.
 class Company(models.Model):
     name = models.CharField(max_length=100)
     location = models.TextField()
+    admin = models.OneToOneField(User, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -26,7 +28,7 @@ class Device(models.Model):
     available = models.BooleanField()
 
     def __str__(self):
-        return f"{self.name} ({self.available})"
+        return f"{self.name}-Is Available? -> {self.available}"
 
 class DeviceLog(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
